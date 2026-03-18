@@ -1,5 +1,3 @@
-import cv2
-
 
 
 #først find ud af hvad fil format man får fra jetson.
