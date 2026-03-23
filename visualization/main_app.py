@@ -1,19 +1,44 @@
-import customtkinter as ctk 
+import customtkinter as ctk
+from pages.main_page import MainPage
+from pages.guide_page import GuidePage
+from pages.about_us_page import AboutUs
+from components.header_content import Header
 
 class App(ctk.CTk):
     def __init__(self):
          super().__init__()
          self.title("Hello World")
-         self.geometry("400x200")
-         label = ctk.CTkLabel(self, text="Hello, Jetson", font=("Calibri",24))
-         label.pack(pady=20)
-
-class MainPage(ctk.CTk):
-    def __init__(self, parent):
-        super().__init__(parent)
-        label = ctk.CTkLabel(self, text="Main Menu", font=("Calibri",24))
-        label.pack(pady=20)
+         self.after(0, lambda: self.state("zoomed"))
          
+         self.grid_rowconfigure(0, weight = 0)
+         self.grid_rowconfigure(1, weight = 1)
+         self.grid_rowconfigure(2, weight = 0)
+         self.grid_columnconfigure(0, weight = 1)
+
+         self.header = Header(self, self)
+         self.header.grid(row=0, column=0, sticky="ew")
+
+         container = ctk.CTkFrame(self)
+         container.grid(row=1, column=0, sticky="nsew")
+         container.grid_columnconfigure(0, weight=1)
+         container.grid_rowconfigure(0, weight=1)
+
+         self.footer = ctk.CTkFrame(self, height=117, fg_color="#211F5C", corner_radius=0)
+         self.footer.grid(row=2, column=0, sticky="ew")
+
+         self.frames = {}
+
+         for F in (MainPage, GuidePage, AboutUs):
+             page_name = F.__name__
+             frame = F(parent=container, controller=self)
+             self.frames[page_name] = frame
+             frame.grid(row=0, column=0, sticky="nsew")
+         self.show_frame("MainPage")
+    
+    def show_frame(self, page_name):
+        frame = self.frames[page_name]
+        frame.tkraise()
+    
 if __name__ == "__main__":
     app = App()
     app.mainloop()
