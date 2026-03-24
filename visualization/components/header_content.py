@@ -1,4 +1,5 @@
 import customtkinter as ctk
+from components.theme import Theme
 
 class HeaderButton(ctk.CTkButton):
     def __init__(self, master, text, command):
@@ -8,15 +9,15 @@ class HeaderButton(ctk.CTkButton):
             command=command,
             width=118,
             height=24,
-            fg_color="#FFFFFF",
-            text_color="#211F5C",
-            hover_color="#C8C8C8",
+            fg_color=Theme.WHITE,
+            text_color=Theme.BLUE,
+            hover_color=Theme.HOVER,
             corner_radius=5
         )
 
 class Header(ctk.CTkFrame):
     def __init__(self, parent, controller):
-        super().__init__(parent, fg_color="#211F5C", corner_radius=0)
+        super().__init__(parent, fg_color=Theme.BLUE, corner_radius=0)
         
         #Stretching of header
         self.grid_columnconfigure(0, weight = 1)
@@ -26,11 +27,11 @@ class Header(ctk.CTkFrame):
         # self.nav_buttons = 
 
         #Title label
-        self.label = ctk.CTkLabel(self, text="                modelName", font=("Calibri",48), text_color="#FFFFFF")
+        self.label = ctk.CTkLabel(self, text="                modelName", font=(Theme.FONT_T,48), text_color=Theme.WHITE)
         self.label.grid(row=0, column=1, padx=(70,10), pady=20)
 
         #Buttons
-        self.btn_group = ctk.CTkFrame(self, fg_color="transparent")
+        self.btn_group = ctk.CTkFrame(self, fg_color=Theme.TP)
         self.btn_group.grid(row=0, column=2, sticky="e", padx=30)
 
         self.home_page_btn = HeaderButton(self.btn_group,"MainPage",lambda: controller.show_frame("MainPage"))

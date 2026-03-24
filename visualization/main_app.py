@@ -3,6 +3,7 @@ from pages.main_page import MainPage
 from pages.guide_page import GuidePage
 from pages.about_us_page import AboutUs
 from components.header_content import Header
+from components.theme import Theme
 
 class App(ctk.CTk):
     def __init__(self):
@@ -23,7 +24,7 @@ class App(ctk.CTk):
          container.grid_columnconfigure(0, weight=1)
          container.grid_rowconfigure(0, weight=1)
 
-         self.footer = ctk.CTkFrame(self, height=117, fg_color="#211F5C", corner_radius=0)
+         self.footer = ctk.CTkFrame(self, height=110, fg_color=Theme.BLUE, corner_radius=0)
          self.footer.grid(row=2, column=0, sticky="ew")
 
          self.frames = {}
