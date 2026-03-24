@@ -1,10 +1,11 @@
 import customtkinter as ctk
 from components.header_content import Header
 from components.text import TitleText, BodyText
+from components.theme import Theme
 
 class GuidePage(ctk.CTkFrame):
     def __init__(self, parent, controller):
-        super().__init__(parent)
+        super().__init__(parent, fg_color=Theme.WHITE)
         
         self.grid_columnconfigure(0, weight=1)
 

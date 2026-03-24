@@ -9,7 +9,7 @@ class App(ctk.CTk):
     def __init__(self):
          super().__init__()
          self.title("Hello World")
-         self.after(0, lambda: self.state("zoomed"))
+         self.after(0, lambda: self.state("zoomed"))         
          
          self.grid_rowconfigure(0, weight = 0)
          self.grid_rowconfigure(1, weight = 1)
