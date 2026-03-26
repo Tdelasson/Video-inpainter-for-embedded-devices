@@ -9,16 +9,58 @@ class GuidePage(ctk.CTkFrame):
         
         self.grid_columnconfigure(0, weight=1)
 
-        self.title = TitleText(self, text="Guide")
+        self.main_content = ctk.CTkScrollableFrame(self, fg_color=Theme.WHITE, label_text="", 
+                         orientation="vertical",
+                         width=800,
+                         height=600)
+        self.main_content.grid(row=0, column=0, sticky="nsew")
+        self.main_content.grid_columnconfigure(0, weight=1)
+
+        self.title = TitleText(self.main_content, text="Guide")
         self.title.grid(row=0, column=0, padx=40, pady=20, sticky="w")
 
         description = ("""Setup:
 1. 
 2. 
+                       r
+                       r
+                       r
+                       r
+                       r
+                       rr
+                       rr
+
+                       r
+                       r
+                       r
+                       r
+                       r
+                       r
+
+                       r
+                       r
+                       r
+                       r
+                       r
+                       r
+                       r
+                       r
+                       r
+                       r
+                       r
+                       r
+                       r
+                       r
+                       r
+                       r
+                       r
+                       r
+                       rr
+
 """
                     )
  
-        self.content = BodyText(self, text=description)
+        self.content = BodyText(self.main_content, text=description)
         self.content.grid(row=1, column=0, padx=40, pady=0, sticky="w")
 
 

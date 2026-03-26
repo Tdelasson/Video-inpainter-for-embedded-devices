@@ -1,16 +1,20 @@
-
 import customtkinter as ctk
 import cv2
 import os
+import time
 
 from components.header_content import Header
 from components.text import BodyText
 from components.theme import Theme
 from PIL import Image
+from collections import deque
+
 
 class MainPage(ctk.CTkFrame):
     def __init__(self, parent, controller):
         super().__init__(parent, fg_color=Theme.WHITE)
+        self.is_active = True
+
         #Placeholder using downloaded video instead of live video footage from camera
         base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         video_path = os.path.join(base_path, "assets", "video_placeholder.mp4")
@@ -44,20 +48,17 @@ class MainPage(ctk.CTkFrame):
 
         self.display_right = ctk.CTkLabel(self, text="")
         self.display_right.grid(row=4, column=1, padx=10, pady=20)
-
-        #Footer
-        self.desc_left = BodyText(self, text="Input")
-        self.desc_left.grid(row=5, column=0, pady=5)
-
-        self.desc_right = BodyText(self, text="Output")
-        self.desc_right.grid(row=5, column=1, pady=5)
-
+        
+        self.fps_list = deque(maxlen=30)
         self.update_frame()
     
     def update_frame(self):
+        frame_start = time.time()
+
         ret, frame = self.cap.read() #Tries to read frame
 
         if ret:
+            real_h, real_w, _ = frame.shape #height, width, channels
 
             frame = cv2.resize(frame, (500, 300)) #Shrinking for better CPU performance
             cv2_img = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -68,6 +69,28 @@ class MainPage(ctk.CTkFrame):
             self.display_right.configure(image=ctk_img)
             self.display_left.image = ctk_img
             self.display_right.image =ctk_img
+
+            frame_end = time.time()
+            time_diff = frame_end - frame_start
+            self.fps_list.append(time_diff)
+
+            if len(self.fps_list) > 0:
+                avg_fps = sum(self.fps_list) / len(self.fps_list)
+                if avg_fps > 0:
+                    mean_fps = 1 / avg_fps
+                else:
+                    mean_fps = 0
+            
+            stats_text = (
+                f"Resolution: {real_w} x {real_h}\n"
+                f"FPS: {mean_fps:.1f}"
+            )
+
+            self.desc_left = BodyText(self, text=stats_text)
+            self.desc_left.grid(row=5, column=0, padx=(110,0), pady=(2,10), sticky="w")
+
+            self.desc_right = BodyText(self, text=stats_text)
+            self.desc_right.grid(row=5, column=1, padx=(110,0), pady=(2,10), sticky="w")
 
         else:
             self.cap.set(cv2.CAP_PROP_POS_FRAMES, 0) #Replay video when ending

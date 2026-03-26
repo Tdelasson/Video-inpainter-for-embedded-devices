@@ -37,8 +37,12 @@ class App(ctk.CTk):
          self.show_frame("MainPage")
     
     def show_frame(self, page_name):
-        frame = self.frames[page_name]
+        for frame in self.frames.values():
+            frame.grid_forget()
+        # frame = self.frames[page_name]
+        self.frames[page_name].grid(row=0, column=0, sticky="nsew")
         frame.tkraise()
+        self.header.select_button(page_name)
     
 if __name__ == "__main__":
     app = App()

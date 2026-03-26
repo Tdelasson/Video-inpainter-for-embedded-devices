@@ -24,8 +24,6 @@ class Header(ctk.CTkFrame):
         self.grid_columnconfigure(1, weight = 0)
         self.grid_columnconfigure(2, weight = 1)
 
-        # self.nav_buttons = 
-
         #Title label
         self.label = ctk.CTkLabel(self, text="                modelName", font=(Theme.FONT_T,48), text_color=Theme.WHITE)
         self.label.grid(row=0, column=1, padx=(70,10), pady=20)
@@ -34,11 +32,24 @@ class Header(ctk.CTkFrame):
         self.btn_group = ctk.CTkFrame(self, fg_color=Theme.TP)
         self.btn_group.grid(row=0, column=2, sticky="e", padx=30)
 
-        self.home_page_btn = HeaderButton(self.btn_group,"MainPage",lambda: controller.show_frame("MainPage"))
-        self.home_page_btn.pack(side="left", expand=True, anchor="w",padx=15)
+        self.buttons = {}
 
-        self.guide_btn = HeaderButton(self.btn_group,"Guide",lambda: controller.show_frame("GuidePage"))
-        self.guide_btn.pack(side="left", expand=True, anchor="center", padx=15)
+        self.buttons["MainPage"] = HeaderButton(self.btn_group,"Main Page",lambda: self.nav_to("MainPage", controller))
+        self.buttons["GuidePage"] = HeaderButton(self.btn_group,"Guide",lambda: self.nav_to("GuidePage", controller))
+        self.buttons["AboutUs"] = HeaderButton(self.btn_group,"About Us",lambda: self.nav_to("AboutUs", controller))
 
-        self.about_us_btn = HeaderButton(self.btn_group,"About Us",lambda: controller.show_frame("AboutUs"))
-        self.about_us_btn.pack(side="left", expand=True, anchor="e", padx=15)
+        for btn in self.buttons.values():
+            btn.pack(side="left", expand=True, anchor="w",padx=15)
+        
+        self.select_button("Main Page")
+
+    def nav_to(self, page_name, controller):
+        controller.show_frame(page_name)
+        self.select_button(page_name)
+    
+    def select_button(self, active_page_name):
+        for name, btn in self.buttons.items():
+            if name == active_page_name:
+                btn.configure(fg_color = Theme.HOVER)
+            else:
+                btn.configure(fg_color = Theme.WHITE)
