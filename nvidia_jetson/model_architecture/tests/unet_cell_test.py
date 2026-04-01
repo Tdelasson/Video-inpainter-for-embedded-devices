@@ -1,6 +1,6 @@
 import torch
 import pytest
-from unet_cell import UNetCell
+from ..unet_cell import UNetCell
 
 class TestUNetCell:
 

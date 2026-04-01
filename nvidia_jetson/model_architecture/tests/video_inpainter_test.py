@@ -1,6 +1,6 @@
 import torch
 import pytest
-from video_inpainter import VideoInpainter
+from ..video_inpainter import VideoInpainter
 
 class VideoInpainterTest:
 

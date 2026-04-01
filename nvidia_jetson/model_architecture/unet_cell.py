@@ -1,8 +1,8 @@
 from torch import nn
 import torch
-from encoder import Encoder
-from decoder import Decoder
-from conv_gru import ConvolutionalGatedRecurrentUnits
+from .encoder import Encoder
+from .decoder import Decoder
+from .conv_gru import ConvolutionalGatedRecurrentUnits
 
 class UNetCell(nn.Module):
     def __init__(self, in_channels: int, base_channels: int, num_layers: int, kernel_size: int=3, stride: int=1, padding: int=1):

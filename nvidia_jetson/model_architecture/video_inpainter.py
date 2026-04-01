@@ -1,4 +1,4 @@
-from unet_cell import UNetCell
+from .unet_cell import UNetCell
 from torch import nn
 import torch
 

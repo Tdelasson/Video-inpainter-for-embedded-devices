@@ -1,6 +1,6 @@
 import torch
 import pytest
-from conv_gru import ConvolutionalGatedRecurrentUnits
+from ..conv_gru import ConvolutionalGatedRecurrentUnits
 
 def test_conv_gru():
     in_channels = 3

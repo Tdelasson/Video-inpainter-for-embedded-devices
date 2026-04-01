@@ -23,12 +23,12 @@ class DepthwiseSeparableConv(nn.Module):
 
 
 class GatedDSC(nn.Module):
-    def __init__(self, in_channels: int, out_channels: int, stride: int=1, normalize: bool=True, activation: bool=True):
+    def __init__(self, in_channels: int, out_channels: int, kernel_size = 3, padding = 1, stride: int=1, normalize: bool=True, activation: bool=True):
         super(GatedDSC, self).__init__()
 
-        self.feature_conv = DepthwiseSeparableConv(in_channels, out_channels, stride=stride)
+        self.feature_conv = DepthwiseSeparableConv(in_channels, out_channels, kernel_size, stride=stride, padding=padding)
 
-        self.gate_conv = DepthwiseSeparableConv(in_channels, out_channels, stride=stride)
+        self.gate_conv = DepthwiseSeparableConv(in_channels, out_channels, kernel_size, stride=stride, padding=padding)
 
         self.sigmoid = nn.Sigmoid()
 

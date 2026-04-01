@@ -1,6 +1,6 @@
 import torch
 import pytest
-from gated_dsc import GatedDSC
+from ..gated_dsc import GatedDSC
 
 
 @pytest.mark.parametrize("stride, expected_hw", [

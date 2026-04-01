@@ -1,5 +1,5 @@
 from torch import nn
-from gated_dsc import DepthwiseSeparableConv
+from .gated_dsc import DepthwiseSeparableConv
 import torch
 
 class ConvolutionalGatedRecurrentUnits(nn.Module):

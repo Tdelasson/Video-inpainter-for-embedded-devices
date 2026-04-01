@@ -1,9 +1,9 @@
 from torch import nn
 import torch
-from gated_dsc import GatedDSC
+from .gated_dsc import GatedDSC
 
 class Decoder (nn.Module):
-    def __init__(self, in_channels: int, base_channels: int, num_layers: int, raw_channels=10):
+    def __init__(self, in_channels: int, base_channels: int, num_layers: int, raw_channels=10, kernel_size: int=3, padding: int=1):
         super(Decoder, self).__init__()
 
         self.upsample = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)
@@ -25,6 +25,8 @@ class Decoder (nn.Module):
                 in_channels=input_to_layer,
                 out_channels=out_channels,
                 stride=1,
+                kernel_size=kernel_size,
+                padding=padding,
                 normalize=True,
                 activation=True
             ))

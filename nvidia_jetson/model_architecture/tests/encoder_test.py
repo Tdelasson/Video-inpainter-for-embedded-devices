@@ -1,6 +1,6 @@
 import torch
 import pytest
-from encoder import Encoder
+from ..encoder import Encoder
 
 @pytest.mark.parametrize("num_layers, base_channels", [
     (3,32),

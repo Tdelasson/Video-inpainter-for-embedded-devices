@@ -1,6 +1,6 @@
 import torch
 import pytest
-from decoder import Decoder
+from ..decoder import Decoder
 
 
 @pytest.mark.parametrize("num_layers, base_channels", [

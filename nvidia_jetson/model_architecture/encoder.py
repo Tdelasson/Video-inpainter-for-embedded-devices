@@ -1,9 +1,9 @@
 from torch import nn
 import torch
-from gated_dsc import GatedDSC
+from .gated_dsc import GatedDSC
 
 class Encoder (nn.Module):
-    def __init__(self, in_channels: int, base_channels: int, num_layers: int):
+    def __init__(self, in_channels: int, base_channels: int, num_layers: int, kernel_size: int=3, padding: int=1):
         super(Encoder, self).__init__()
         self.num_layers = num_layers
 
@@ -19,6 +19,8 @@ class Encoder (nn.Module):
                 in_channels=current_in,
                 out_channels=out_channels,
                 stride=2,
+                kernel_size=kernel_size,
+                padding=padding,
                 normalize=should_normalize,
                 activation=True
             ))
