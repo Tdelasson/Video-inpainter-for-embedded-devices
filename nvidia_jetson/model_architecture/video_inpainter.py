@@ -8,10 +8,11 @@ class VideoInpainter(nn.Module):
         self.unet_cell = UNetCell(in_channels, base_channels, num_layers, kernel_size, stride, padding)
 
     def forward(self, x: torch.Tensor, h_prev: torch.Tensor=None) -> tuple[torch.Tensor, torch.Tensor]:
-        if x.dim == 5:
+        if x.dim() == 5:
             return self._forward_sequence(x, h_prev)
         else:
             return self.unet_cell(x, h_prev)
+
 
     def _forward_sequence(self, x: torch.Tensor, h_prev: torch.Tensor=None):
         batch_size, seq_len, c, h, w = x.size()

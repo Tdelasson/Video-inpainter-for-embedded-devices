@@ -15,7 +15,7 @@ class UNetCell(nn.Module):
 
         self.conv_gru = ConvolutionalGatedRecurrentUnits(channels_in_deepest_layer, channels_in_deepest_layer, kernel_size, stride, padding)
 
-        self.head = nn.Conv2d(base_channels, 4, kernel_size=1)
+        self.head = nn.Conv2d(base_channels, 3, kernel_size=1)
 
     def forward(self, x: torch.Tensor, h_prev: torch.Tensor=None) -> tuple[torch.Tensor, torch.Tensor]:
         skips: list[torch.Tensor] = self.encoder(x)
