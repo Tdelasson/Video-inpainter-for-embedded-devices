@@ -30,7 +30,7 @@ class MainPage(ctk.CTkFrame):
         self.title_left = BodyText(self.left_frame, text="Input")
         self.title_left.grid(row=2, column=0, padx=30, sticky="w")
 
-        self.btn = ctk.CTkButton(self.left_frame, text="Start      \u25B6", font=(Theme.FONT_T,18), fg_color=Theme.BLUE, width=120, height=40)
+        self.btn = ctk.CTkButton(self.left_frame, text="Start      \u25B6", font=(Theme.FONT_T,18), text_color=Theme.WHITE, fg_color=Theme.BLUE, width=120, height=40)
         self.btn.grid(row=2, column=1, padx=(70,30), sticky="e")
 
         #Right Column

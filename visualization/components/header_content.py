@@ -25,7 +25,7 @@ class Header(ctk.CTkFrame):
         self.grid_columnconfigure(2, weight = 1)
 
         #Title label
-        self.label = ctk.CTkLabel(self, text="                modelName", font=(Theme.FONT_T,48), text_color=Theme.WHITE)
+        self.label = ctk.CTkLabel(self, text="                                         modelName", font=(Theme.FONT_T,48), text_color=Theme.WHITE)
         self.label.grid(row=0, column=1, padx=(70,10), pady=20)
 
         #Buttons

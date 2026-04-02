@@ -19,7 +19,7 @@ class App(ctk.CTk):
          self.header = Header(self, self)
          self.header.grid(row=0, column=0, sticky="ew")
 
-         container = ctk.CTkFrame(self)
+         container = ctk.CTkFrame(self, fg_color=Theme.TP)
          container.grid(row=1, column=0, sticky="nsew")
          container.grid_columnconfigure(0, weight=1)
          container.grid_rowconfigure(0, weight=1)
@@ -27,6 +27,7 @@ class App(ctk.CTk):
          self.footer = ctk.CTkFrame(self, height=110, fg_color=Theme.BLUE, corner_radius=0)
          self.footer.grid(row=2, column=0, sticky="ew")
 
+         #Initialize frames
          self.frames = {}
 
          for F in (MainPage, GuidePage, AboutUs):
@@ -34,15 +35,23 @@ class App(ctk.CTk):
              frame = F(parent=container, controller=self)
              self.frames[page_name] = frame
              frame.grid(row=0, column=0, sticky="nsew")
+         
          self.show_frame("MainPage")
+
+         #Run this code when clicking X to close app
+         self.protocol("WM_DELETE_WINDOW", self.on_closing)
     
     def show_frame(self, page_name):
-        for frame in self.frames.values():
-            frame.grid_forget()
-        # frame = self.frames[page_name]
-        self.frames[page_name].grid(row=0, column=0, sticky="nsew")
+        frame = self.frames[page_name]
         frame.tkraise()
+
+        self.update_idletasks()
         self.header.select_button(page_name)
+    
+    def on_closing(self):
+        if "MainPage" in self.frames:
+            self.frames["MainPage"].cap.release()
+            self.destroy()
     
 if __name__ == "__main__":
     app = App()
