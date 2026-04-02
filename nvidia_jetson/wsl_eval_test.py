@@ -79,7 +79,7 @@ def main() -> None:
         pred_root=repo_root / "Results2" / "FuseFormer_OM" / "DAVIS" / "synthetic" / "_official_eval_pred",
         repo_root=official_eval_repo,
         output_size=(432, 240),
-        metrics=("vfid", "warp_error_mask"),
+        metrics=("vfid","warp_error_mask"), #("vfid", "warp_error_mask")
     )
 
     print(metrics)

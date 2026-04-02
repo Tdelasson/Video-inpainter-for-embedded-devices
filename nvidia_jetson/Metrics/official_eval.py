@@ -23,8 +23,8 @@ def _write_ground_truth_video(
         mask = cv2.resize(mask.astype(np.uint8), output_size, interpolation=cv2.INTER_NEAREST)
         frame_bgr = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
         mask_u8 = (mask > 0).astype(np.uint8) * 255
-        cv2.imwrite(str(video_dir / f"frame_{idx:05d}_gt.png"), frame_bgr)
-        cv2.imwrite(str(video_dir / f"frame_{idx:05d}_mask.png"), mask_u8)
+        cv2.imwrite(str(video_dir / f"frame_{idx:04d}_gt.png"), frame_bgr)
+        cv2.imwrite(str(video_dir / f"frame_{idx:04d}_mask.png"), mask_u8)
 
 
 def save_prediction_video(video_name: str, frames: list[np.ndarray], pred_root: Path) -> None:
@@ -33,7 +33,7 @@ def save_prediction_video(video_name: str, frames: list[np.ndarray], pred_root: 
 
     for idx, frame in enumerate(frames):
         frame_bgr = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
-        cv2.imwrite(str(video_dir / f"frame_{idx:05d}_pred.png"), frame_bgr)
+        cv2.imwrite(str(video_dir / f"frame_{idx:04d}_pred.png"), frame_bgr)
 
 
 def _run_repo_module(
@@ -153,7 +153,7 @@ def run_official_synthetic_eval(
     repo_root: str | Path,
     output_size: tuple[int, int],
     eval_feats_root: str | Path | None = None,
-    metrics: tuple[str, ...] = ("vfid", "warp_error_mask"),
+    metrics: str | tuple[str, ...] = ("vfid", "warp_error_mask"),
     python_executable: str = sys.executable,
 ) -> dict[str, float]:
     repo_root = Path(repo_root)
@@ -163,6 +163,9 @@ def run_official_synthetic_eval(
     pred_root = Path(pred_root)
     if not pred_root.exists():
         raise FileNotFoundError(f"Prediction directory not found: {pred_root}")
+
+    if isinstance(metrics, str):
+        metrics = (metrics,)
 
     with tempfile.TemporaryDirectory(prefix="official_eval_") as tmp_dir:
         tmp_path = Path(tmp_dir)
