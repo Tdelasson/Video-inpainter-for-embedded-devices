@@ -41,20 +41,29 @@ class MainPage(ctk.CTkFrame):
         self.title_right = BodyText(self.right_frame, text="Output")
         self.title_right.grid(row=2, column=0, padx=30, sticky="w")
 
-
         #Display
         self.display_left = ctk.CTkLabel(self, text="")
         self.display_left.grid(row=4, column=0, padx=10, pady=20)
 
         self.display_right = ctk.CTkLabel(self, text="")
         self.display_right.grid(row=4, column=1, padx=10, pady=20)
+
+        self.desc_left = BodyText(self, text="")
+        self.desc_left.grid(row=5, column=0, padx=(110,0), pady=(2,10), sticky="w")
+
+        self.desc_right = BodyText(self, text="")
+        self.desc_right.grid(row=5, column=1, padx=(110,0), pady=(2,10), sticky="w")
         
         self.fps_list = deque(maxlen=30)
+        self.latency_list = deque(maxlen=30)
         self.update_frame()
     
     def update_frame(self):
-        frame_start = time.time()
-
+        if not self.winfo_ismapped():
+            self.after(500, self.update_frame)
+            return
+        
+        time_start = time.time()
         ret, frame = self.cap.read() #Tries to read frame
 
         if ret:
@@ -67,30 +76,31 @@ class MainPage(ctk.CTkFrame):
 
             self.display_left.configure(image=ctk_img)
             self.display_right.configure(image=ctk_img)
-            self.display_left.image = ctk_img
-            self.display_right.image =ctk_img
+        
 
-            frame_end = time.time()
-            time_diff = frame_end - frame_start
+            time_end = time.time()
+            time_diff = time_end - time_start
             self.fps_list.append(time_diff)
 
+            #FPS
             if len(self.fps_list) > 0:
                 avg_fps = sum(self.fps_list) / len(self.fps_list)
-                if avg_fps > 0:
-                    mean_fps = 1 / avg_fps
-                else:
-                    mean_fps = 0
+                mean_fps = 1 / avg_fps if avg_fps > 0 else 0
+
+            #Latency
+            latency_ms = time_diff * 1000
+            self.latency_list.append(latency_ms)
+            if len(self.latency_list) > 0:
+                avg_latency = sum(self.latency_list) / len(self.latency_list)
             
             stats_text = (
                 f"Resolution: {real_w} x {real_h}\n"
-                f"FPS: {mean_fps:.1f}"
+                f"FPS: {mean_fps:.1f}\n"
+                f"Latency: {avg_latency:.1f} ms"
             )
 
-            self.desc_left = BodyText(self, text=stats_text)
-            self.desc_left.grid(row=5, column=0, padx=(110,0), pady=(2,10), sticky="w")
-
-            self.desc_right = BodyText(self, text=stats_text)
-            self.desc_right.grid(row=5, column=1, padx=(110,0), pady=(2,10), sticky="w")
+            self.desc_left.configure(text=stats_text)
+            self.desc_right.configure(text=stats_text)
 
         else:
             self.cap.set(cv2.CAP_PROP_POS_FRAMES, 0) #Replay video when ending
