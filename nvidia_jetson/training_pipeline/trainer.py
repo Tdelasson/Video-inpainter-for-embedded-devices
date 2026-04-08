@@ -35,6 +35,9 @@ rgb_data = []
 training_tensors = []
 rgb_img_tensor = []
 
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print(f"Training on: {device}")
+
 for i in range(0, number_of_seq):
     data = dataset.load_data()
     if len(data) > 0:
@@ -56,13 +59,12 @@ for i in range(0, number_of_seq):
         rgb_img_tensor = rgb_img_tensor.reshape(-1, 256, 256)  # (seq_len * C, 256, 256)
 
         print(rgb_img_tensor.shape)
-        training_tensors.append(rgb_img_tensor)
-
+        training_tensors.append(rgb_img_tensor.to(device))
 
 
 print(len(rgb_data))
 
-model = VideoInpainter(in_channels=IN_CHANNELS, base_channels=128, num_layers=5)
+model = VideoInpainter(in_channels=IN_CHANNELS, base_channels=128, num_layers=5).to(device)
 
 print("input")
 print(training_tensors[0].shape)
@@ -71,8 +73,9 @@ optimizer = optim.Adam(model.parameters(), lr=0.001)
 scheduler = CosineAnnealingLR(optimizer, T_max=1000, eta_min=1e-6)
 results = []
 
-perceptual_criterion = PerceptualLoss()
+perceptual_criterion = PerceptualLoss().to(device)
 l1_criterion = torch.nn.L1Loss()
+target = target.to(device)
 
 for i in range(0, 500):
     optimizer.zero_grad()
@@ -104,7 +107,7 @@ num_results = len(results)
 
 for idx, (target_img, output_img) in enumerate(results):
     for i, image in enumerate([target_img, output_img]):
-        img_np = image.permute(1, 2, 0).numpy()
+        img_np = image.cpu().permute(1, 2, 0).numpy()
         img_np = (img_np * 255).astype(np.uint8)
         img_np = cv2.cvtColor(img_np, cv2.COLOR_RGB2BGR)
 
@@ -112,11 +115,11 @@ for idx, (target_img, output_img) in enumerate(results):
         cv2.waitKey(0)
 
     if idx == num_results - 1:
-        target_np = target_img.permute(1, 2, 0).numpy()
+        target_np = target_img.cpu().permute(1, 2, 0).numpy()
         target_np = (target_np * 255).astype(np.uint8)
         target_np = cv2.cvtColor(target_np, cv2.COLOR_RGB2BGR)
 
-        output_np = output_img.permute(1, 2, 0).numpy()
+        output_np = output_img.cpu().permute(1, 2, 0).numpy()
         output_np = (output_np * 255).astype(np.uint8)
         output_np = cv2.cvtColor(output_np, cv2.COLOR_RGB2BGR)
 
