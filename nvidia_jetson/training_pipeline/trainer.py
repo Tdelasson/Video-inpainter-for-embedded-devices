@@ -26,7 +26,7 @@ class PerceptualLoss(torch.nn.Module):
 # We have 3471 files
 number_of_seq = 50
 
-root_dir = os.getcwd()
+root_dir = "C:\\Users\\tobpu\\Desktop\\Video-inpainter-for-embedded-devices\\nvidia_jetson"
 
 train_path = os.path.join(root_dir, "training_data", "train")
 
@@ -81,7 +81,7 @@ perceptual_criterion = PerceptualLoss().to(device)
 l1_criterion = torch.nn.L1Loss()
 target = target.to(device)
 
-for i in range(0, 500):
+for i in range(0, 10):
     optimizer.zero_grad()
 
     output_frame, _ = model(training_tensors[0].unsqueeze(0).unsqueeze(0))
@@ -115,8 +115,8 @@ for idx, (target_img, output_img) in enumerate(results):
         img_np = (img_np * 255).astype(np.uint8)
         img_np = cv2.cvtColor(img_np, cv2.COLOR_RGB2BGR)
 
-        cv2.imshow('image', img_np)
-        cv2.waitKey(0)
+        #cv2.imshow('image', img_np)
+        #cv2.waitKey(0)
 
     if idx == num_results - 1:
         target_np = target_img.cpu().permute(1, 2, 0).numpy()
@@ -130,7 +130,7 @@ for idx, (target_img, output_img) in enumerate(results):
         cv2.imwrite("target.png", target_np)
         cv2.imwrite("final_output.png", output_np)
 
-        print("Færdig! Gemte både 'target.png' og 'final_output.png'")
+        print("Done! Saved both 'target.png' og 'final_output.png'")
 
 #for i in range(0, len(rgb_data)):
 #    for h in range(0, len(rgb_data[i])):
