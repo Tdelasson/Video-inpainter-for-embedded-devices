@@ -10,16 +10,34 @@ from PIL import Image
 from collections import deque
 
 
+DIRECT_PORT = 5000
+AI_PORT = 5001
+
+
+
+def gstreamer_pipelin_on_pc(port):
+    return (
+        f"udpsrc port={port} ! "
+        f"application/x-rtp, encoding-name=JPEG, payload=26 !"
+        f"rtpjpegdepay ! "
+        f"jpegdec ! "
+        f"videoconvert ! "
+        f"appsink"
+    )
+
+
+
 class MainPage(ctk.CTkFrame):
     def __init__(self, parent, controller):
         super().__init__(parent, fg_color=Theme.WHITE)
         self.is_active = True
 
         #Placeholder using downloaded video instead of live video footage from camera
-        base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        video_path = os.path.join(base_path, "assets", "video_placeholder.mp4")
+        #base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        #video_path = os.path.join(base_path, "assets", "video_placeholder.mp4")
 
-        self.cap = cv2.VideoCapture(video_path)
+        self.cap_direct = cv2.VideoCapture(gstreamer_pipelin_on_pc(DIRECT_PORT), cv2.CAP_GSTREAMER)
+        self.cap_ai = cv2.VideoCapture(gstreamer_pipelin_on_pc(AI_PORT), cv2.CAP_GSTREAMER)
 
         self.grid_columnconfigure((0, 1), weight=1)
        
@@ -54,8 +72,9 @@ class MainPage(ctk.CTkFrame):
         self.desc_right = BodyText(self, text="")
         self.desc_right.grid(row=5, column=1, padx=(110,0), pady=(2,10), sticky="w")
         
-        self.fps_list = deque(maxlen=30)
-        self.latency_list = deque(maxlen=30)
+        # self.fps_list = deque(maxlen=30)
+        # self.latency_list = deque(maxlen=30)
+        
         self.update_frame()
     
     def update_frame(self):
@@ -63,46 +82,58 @@ class MainPage(ctk.CTkFrame):
             self.after(500, self.update_frame)
             return
         
-        time_start = time.time()
-        ret, frame = self.cap.read() #Tries to read frame
+        #time_start = time.time()
+        ret_direct, frame_direct = self.cap_direct.read() #Tries to read frame
+        ret_ai, frame_ai = self.cap_ai.read()
 
-        if ret:
+        if ret_direct:
+            self.video_display(frame_direct)
+        else:
+            self.cap_direct.set(cv2.CAP_PROP_POS_FRAMES, 0) #Replay video when ending
+            
+        
+        if ret_ai:
+            self.video_display(frame_ai)
+        else:
+            self.cap_ai.set(cv2.CAP_PROP_POS_FRAMES, 0) #Replay video when ending
+        
+
+        self.after(30, self.update_frame)
+
+
+
+    def video_display(self, frame):
             real_h, real_w, _ = frame.shape #height, width, channels
-
             frame = cv2.resize(frame, (500, 300)) #Shrinking for better CPU performance
             cv2_img = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             pil_img = Image.fromarray(cv2_img)
             ctk_img = ctk.CTkImage(light_image=pil_img, size=(500, 300)) #UI size
-
+            
             self.display_left.configure(image=ctk_img)
             self.display_right.configure(image=ctk_img)
-        
 
-            time_end = time.time()
-            time_diff = time_end - time_start
-            self.fps_list.append(time_diff)
+    #def calculations():
+        # time_end = time.time()
+        # time_diff = time_end - time_start
+        # self.fps_list.append(time_diff)
 
-            #FPS
-            if len(self.fps_list) > 0:
-                avg_fps = sum(self.fps_list) / len(self.fps_list)
-                mean_fps = 1 / avg_fps if avg_fps > 0 else 0
-
-            #Latency
-            latency_ms = time_diff * 1000
-            self.latency_list.append(latency_ms)
-            if len(self.latency_list) > 0:
-                avg_latency = sum(self.latency_list) / len(self.latency_list)
             
-            stats_text = (
-                f"Resolution: {real_w} x {real_h}\n"
-                f"FPS: {mean_fps:.1f}\n"
-                f"Latency: {avg_latency:.1f} ms"
-            )
+        # #FPS
+        # if len(self.fps_list) > 0:
+        #     avg_fps = sum(self.fps_list) / len(self.fps_list)
+        #     mean_fps = 1 / avg_fps if avg_fps > 0 else 0
 
-            self.desc_left.configure(text=stats_text)
-            self.desc_right.configure(text=stats_text)
+        # #Latency
+        # latency_ms = time_diff * 1000
+        # self.latency_list.append(latency_ms)
+        # if len(self.latency_list) > 0:
+        #     avg_latency = sum(self.latency_list) / len(self.latency_list)
+        
+        # stats_text = (
+        #     f"Resolution: {real_w} x {real_h}\n"
+        #     f"FPS: {mean_fps:.1f}\n"
+        #     f"Latency: {avg_latency:.1f} ms"
+        # )
 
-        else:
-            self.cap.set(cv2.CAP_PROP_POS_FRAMES, 0) #Replay video when ending
-
-        self.after(30, self.update_frame)
+        # self.desc_left.configure(text=stats_text)
+        # self.desc_right.configure(text=stats_text)
