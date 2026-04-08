@@ -163,8 +163,8 @@ class FuseFormerOMAdapter(BaseVideoInpainter):
                 else:
                     selected_memory = torch.empty(0, device=self.device, dtype=masked_img.dtype)
 
-                if self.fp16:
-                    with torch.cuda.amp.autocast():
+                if self.fp16 and self.device.type == "cuda":
+                    with torch.amp.autocast("cuda"):
                         pred_img, attn = self.model(masked_img, selected_memory)
                 else:
                     pred_img, attn = self.model(masked_img, selected_memory)
