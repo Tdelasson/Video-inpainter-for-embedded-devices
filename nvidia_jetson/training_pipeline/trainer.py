@@ -26,7 +26,7 @@ class PerceptualLoss(torch.nn.Module):
 # We have 3471 files
 number_of_seq = 50
 
-root_dir = "C:\\Users\\tobpu\\Desktop\\Video-inpainter-for-embedded-devices\\nvidia_jetson"
+root_dir = os.getcwd()
 
 train_path = os.path.join(root_dir, "training_data", "train")
 
