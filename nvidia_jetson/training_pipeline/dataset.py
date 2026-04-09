@@ -6,7 +6,7 @@ import numpy as np
 
 
 class YouTubeVOSDataset(Dataset):
-    def __init__(self, root_dir, seq_len: int = 15):
+    def __init__(self, root_dir, seq_len: int = 5):
         self.jpeg_path = os.path.join(root_dir, "JPEGImages")
         self.seq_len = seq_len
 
@@ -15,68 +15,29 @@ class YouTubeVOSDataset(Dataset):
 
         self.video_list = list(self.meta.keys())
 
-        self.start_index = "00000"
-        self.video_index = 0
-        self.specific_jpeg_path = os.path.join(self.jpeg_path, self.video_list[self.video_index])
-
-
-
     def __len__(self):
         return len(self.video_list)
 
-    def load_data(self):
+    def __getitem__(self, idx):
+        video_id = self.video_list[idx]
+        specific_jpeg_path = os.path.join(self.jpeg_path, video_id)
+        all_frames = sorted([f for f in os.listdir(specific_jpeg_path) if f.endswith('.jpg')])
 
-        self.check_valid_start_index()
+        if len(all_frames) < self.seq_len:
+            return self.__getitem__(np.random.randint(0, len(self.video_list)))
+
+        selected_frames = all_frames[:self.seq_len]
 
         rgb_frames = []
-        selected_frames = []
-
-        for frame in range(0, self.seq_len):
-            selected_frames.append(self.start_index)
-            self.start_index = str(int(self.start_index) + 5).zfill(5)
-
-        print(f"selected frames: {selected_frames}")
-
-        for frame in selected_frames:
-            if os.path.exists(os.path.join(self.specific_jpeg_path, f"{frame}.jpg")):
-                jpeg_img = cv2.imread(os.path.join(self.specific_jpeg_path, f"{frame}.jpg"))
+        for frame_name in selected_frames:
+            frame_path = os.path.join(specific_jpeg_path, frame_name)
+            jpeg_img = cv2.imread(frame_path)
+            if jpeg_img is not None:
+                jpeg_img = cv2.resize(jpeg_img, (256, 256))
                 rgb_img = cv2.cvtColor(jpeg_img, cv2.COLOR_BGR2RGB)
-
                 rgb_frames.append(rgb_img)
 
         if len(rgb_frames) < self.seq_len:
-            print(f"Warning: Only {len(rgb_frames)} frames were loaded for video {self.video_list[self.video_index]}. Discarding this video.")
-            rgb_frames = []
+            return self.__getitem__(np.random.randint(0, len(self.video_list)))
 
-        return np.array(rgb_frames)
-
-    def get_smallest_existing_image_index(self, path):
-        start_index = "00000"
-        while not os.path.exists(os.path.join(path, f"{start_index}.jpg")):
-            start_index = str(int(start_index) + 5).zfill(5)
-
-        return start_index
-
-    def update_video_index(self, video_index):
-        self.video_index = video_index
-        self.specific_jpeg_path = os.path.join(self.jpeg_path, self.video_list[video_index])
-
-    def check_valid_start_index(self):
-        if not os.path.exists(os.path.join(self.specific_jpeg_path, f"{self.start_index}.jpg")):
-            smallest_existing_image_index = self.get_smallest_existing_image_index(self.specific_jpeg_path)
-
-            if int(self.start_index) > int(smallest_existing_image_index):
-                self.update_video_index(self.video_index + 1)
-                self.start_index = "00000"
-            else:
-                self.start_index = smallest_existing_image_index
-
-
-
-
-
-
-
-
-
-
+        return np.array(rgb_frames)  # Nu er alle (5, 256, 256, 3)

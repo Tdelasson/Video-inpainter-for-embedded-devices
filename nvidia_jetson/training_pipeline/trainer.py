@@ -55,51 +55,48 @@ l1_criterion = torch.nn.L1Loss()
 
 print(f"Starting training on {device}...")
 
-# --- TRAINING LOOP ---
-current_iter = 0
-while current_iter < NUM_ITERATIONS:
-    for batch_data in train_loader:
-        if current_iter >= NUM_ITERATIONS: break
+def train():
+    # --- TRAINING LOOP ---
+    current_iter = 0
+    while current_iter < NUM_ITERATIONS:
+        for batch_data in train_loader:
+            if current_iter >= NUM_ITERATIONS: break
 
-        optimizer.zero_grad()
+            optimizer.zero_grad()
 
-        # Preprocessing af hele batchen (B, Seq, H, W, C) -> (B, Seq, C, H, W)
-        batch_data = batch_data.float() / 255.0
-        batch_data = batch_data.permute(0, 1, 4, 2, 3).to(device)
+            # Preprocessing af hele batchen (B, Seq, H, W, C) -> (B, Seq, C, H, W)
+            batch_data = batch_data.float() / 255.0
+            batch_data = batch_data.permute(0, 1, 4, 2, 3).to(device)
+            B, S, C, H, W = batch_data.shape
 
-        # Resize alle billeder i batchen
-        # Vi folder B og Seq sammen for at køre interpolate hurtigt
-        B, S, C, H, W = batch_data.shape
-        batch_data = torch.nn.functional.interpolate(
-            batch_data.view(-1, C, H, W), size=TARGET_RES, mode='bilinear'
-        ).view(B, S, C, *TARGET_RES)
+            # Split i input (de første frames) og target (den sidste frame)
+            inputs = batch_data.reshape(B, -1, 256, 256)  # (B, (S-1)*C, 256, 256)
+            target = batch_data[:, -1]  # (B, C, 256, 256)
 
-        # Split i input (de første frames) og target (den sidste frame)
-        inputs = batch_data[:, :-1].reshape(B, -1, 256, 256)  # (B, (S-1)*C, 256, 256)
-        target = batch_data[:, -1]  # (B, C, 256, 256)
+            # Model forward
+            output, _ = model(inputs.unsqueeze(1))
+            output = output.squeeze(1)  # Fjern seq dim igen
 
-        # Model forward
-        # Tilføj en ekstra dimension hvis din model forventer (B, 1, C, H, W)
-        output, _ = model(inputs.unsqueeze(1))
-        output = output.squeeze(1)  # Fjern seq dim igen
+            # Loss beregning
+            l1_loss = l1_criterion(output, target)
+            vgg_loss = perceptual_criterion(output, target)
+            total_loss = l1_loss + (0.1 * vgg_loss)
 
-        # Loss beregning
-        l1_loss = l1_criterion(output, target)
-        vgg_loss = perceptual_criterion(output, target)
-        total_loss = l1_loss + (0.1 * vgg_loss)
+            total_loss.backward()
+            optimizer.step()
+            scheduler.step()
 
-        total_loss.backward()
-        optimizer.step()
-        scheduler.step()
+            if current_iter % 10 == 0:
+                print(f"Iter {current_iter} | Total: {total_loss.item():.4f} | L1: {l1_loss.item():.4f}")
 
-        if current_iter % 10 == 0:
-            print(f"Iter {current_iter} | Total: {total_loss.item():.4f} | L1: {l1_loss.item():.4f}")
+            # Gem et eksempel indimellem
+            if current_iter % 500 == 0:
+                out_img = (output[0].detach().cpu().permute(1, 2, 0).numpy() * 255).astype(np.uint8)
+                cv2.imwrite(f"output_iter_{current_iter}.png", cv2.cvtColor(out_img, cv2.COLOR_RGB2BGR))
 
-        # Gem et eksempel indimellem
-        if current_iter % 500 == 0:
-            out_img = (output[0].detach().cpu().permute(1, 2, 0).numpy() * 255).astype(np.uint8)
-            cv2.imwrite(f"output_iter_{current_iter}.png", cv2.cvtColor(out_img, cv2.COLOR_RGB2BGR))
+            current_iter += 1
 
-        current_iter += 1
+    print("Training Done!")
 
-print("Training Done!")
+if __name__ == '__main__':
+    train()
