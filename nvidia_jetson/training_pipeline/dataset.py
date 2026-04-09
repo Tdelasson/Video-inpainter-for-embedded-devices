@@ -10,10 +10,13 @@ class YouTubeVOSDataset(Dataset):
         self.jpeg_path = os.path.join(root_dir, "JPEGImages")
         self.seq_len = seq_len
 
-        with open(os.path.join(root_dir, "meta.json"), "r") as f:
-            self.meta = json.load(f)['videos']
+        if not os.path.exists(self.jpeg_path):
+            raise FileNotFoundError(f"Kunne ikke finde JPEGImages mappen her: {self.jpeg_path}")
 
-        self.video_list = list(self.meta.keys())
+        self.video_list = [f for f in os.listdir(self.jpeg_path)
+                           if os.path.isdir(os.path.join(self.jpeg_path, f))]
+
+        print(f"Dataset initialiseret: Fandt {len(self.video_list)} videoer på disken.")
 
     def __len__(self):
         return len(self.video_list)
