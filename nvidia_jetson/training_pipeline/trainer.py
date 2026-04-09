@@ -1,4 +1,4 @@
-from dataset import YouTubeVOSDataset
+from .dataset import YouTubeVOSDataset
 from model_architecture.video_inpainter import VideoInpainter
 import cv2
 import torch
@@ -24,7 +24,7 @@ class PerceptualLoss(torch.nn.Module):
         return self.mse(x_vgg, y_vgg)
 
 # We have 3471 files
-number_of_seq = 50
+number_of_seq = 5000
 
 root_dir = os.getcwd()
 
@@ -37,6 +37,7 @@ TARGET_RES = (256, 256)
 
 rgb_data = []
 training_tensors = []
+targets = []
 rgb_img_tensor = []
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -58,8 +59,7 @@ for i in range(0, number_of_seq):
             mode='bilinear',
             align_corners=False
         )
-        target = rgb_img_tensor[-1]
-        print(f"target shape: {target.shape}")
+        targets.append(rgb_img_tensor[-1].to(device))
         rgb_img_tensor = rgb_img_tensor.reshape(-1, 256, 256)  # (seq_len * C, 256, 256)
 
         print(rgb_img_tensor.shape)
@@ -74,23 +74,24 @@ print("input")
 print(training_tensors[0].shape)
 
 optimizer = optim.Adam(model.parameters(), lr=0.001)
-scheduler = CosineAnnealingLR(optimizer, T_max=1000, eta_min=1e-6)
+scheduler = CosineAnnealingLR(optimizer, T_max=5000, eta_min=1e-6)
 results = []
 
 perceptual_criterion = PerceptualLoss().to(device)
 l1_criterion = torch.nn.L1Loss()
-target = target.to(device)
 
-for i in range(0, 10):
+for i in range(0, 5000):
     optimizer.zero_grad()
 
-    output_frame, _ = model(training_tensors[0].unsqueeze(0).unsqueeze(0))
+    idx = i % len(training_tensors)
+
+    output_frame, _ = model(training_tensors[idx].unsqueeze(0).unsqueeze(0))
     output_frame = output_frame.squeeze(0).squeeze(0)
 
     out_vgg = output_frame.unsqueeze(0)
-    target_vgg = target.unsqueeze(0)
+    target_vgg = targets[i].unsqueeze(0)
 
-    l1_loss = l1_criterion(output_frame, target)
+    l1_loss = l1_criterion(output_frame, targets[i])
     vgg_loss = perceptual_criterion(out_vgg, target_vgg)
     # Kombineret loss (prøv med en vægt på 0.1 til VGG i starten)
     total_loss = l1_loss + (0.1 * vgg_loss)
@@ -104,7 +105,7 @@ for i in range(0, 10):
 
     if i % 50 == 0:
         print(f"Iteration {i} | Loss: {total_loss.item():.6f}")
-        results.append((target, output_frame.detach()))
+        results.append((targets[i], output_frame.detach()))
 
 
 num_results = len(results)
