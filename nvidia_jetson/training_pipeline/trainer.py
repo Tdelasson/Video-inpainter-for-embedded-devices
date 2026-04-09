@@ -26,7 +26,7 @@ class PerceptualLoss(torch.nn.Module):
 
 # --- CONFIG ---
 TARGET_RES = (256, 256)
-BATCH_SIZE = 4  # Nu kan du køre flere sekvenser ad gangen!
+BATCH_SIZE = 1  # Nu kan du køre flere sekvenser ad gangen!
 NUM_ITERATIONS = 5000
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -52,6 +52,9 @@ scheduler = CosineAnnealingLR(optimizer, T_max=NUM_ITERATIONS, eta_min=1e-6)
 
 perceptual_criterion = PerceptualLoss().to(device)
 l1_criterion = torch.nn.L1Loss()
+
+save_dir = "pictures"
+os.makedirs(save_dir, exist_ok=True)
 
 print(f"Starting training on {device}...")
 
@@ -89,10 +92,18 @@ def train():
             if current_iter % 10 == 0:
                 print(f"Iter {current_iter} | Total: {total_loss.item():.4f} | L1: {l1_loss.item():.4f}")
 
-            # Gem et eksempel indimellem
             if current_iter % 500 == 0:
                 out_img = (output[0].detach().cpu().permute(1, 2, 0).numpy() * 255).astype(np.uint8)
-                cv2.imwrite(f"output_iter_{current_iter}.png", cv2.cvtColor(out_img, cv2.COLOR_RGB2BGR))
+                out_img_bgr = cv2.cvtColor(out_img, cv2.COLOR_RGB2BGR)
+
+                target_img = (target[0].detach().cpu().permute(1, 2, 0).numpy() * 255).astype(np.uint8)
+                target_img_bgr = cv2.cvtColor(target_img, cv2.COLOR_RGB2BGR)
+
+                out_path = os.path.join(save_dir, f"iter_{current_iter}_output.png")
+                target_path = os.path.join(save_dir, f"iter_{current_iter}_target.png")
+
+                cv2.imwrite(out_path, out_img_bgr)
+                cv2.imwrite(target_path, target_img_bgr)
 
             current_iter += 1
 
