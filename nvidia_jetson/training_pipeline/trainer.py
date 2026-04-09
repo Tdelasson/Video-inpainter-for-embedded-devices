@@ -1,13 +1,15 @@
-from .dataset import YouTubeVOSDataset
-from model_architecture.video_inpainter import VideoInpainter
+import os
 import cv2
 import torch
 import torch.optim as optim
 import numpy as np
+from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import CosineAnnealingLR
-import os
-
 from torchvision.models import vgg16, VGG16_Weights
+
+from training_pipeline.dataset import YouTubeVOSDataset
+from model_architecture.video_inpainter import VideoInpainter
+
 
 class PerceptualLoss(torch.nn.Module):
     def __init__(self):
@@ -19,121 +21,85 @@ class PerceptualLoss(torch.nn.Module):
         self.mse = torch.nn.MSELoss()
 
     def forward(self, x, y):
-        x_vgg = self.vgg(x)
-        y_vgg = self.vgg(y)
-        return self.mse(x_vgg, y_vgg)
+        return self.mse(self.vgg(x), self.vgg(y))
 
-# We have 3471 files
-number_of_seq = 5000
 
+# --- CONFIG ---
+TARGET_RES = (256, 256)
+BATCH_SIZE = 4  # Nu kan du køre flere sekvenser ad gangen!
+NUM_ITERATIONS = 5000
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+# --- DATASET & DATALOADER ---
 root_dir = os.getcwd()
-
 train_path = os.path.join(root_dir, "training_data", "train")
-
 dataset = YouTubeVOSDataset(root_dir=train_path, seq_len=5)
 
-IN_CHANNELS = dataset.seq_len * 3
-TARGET_RES = (256, 256)
+# DataLoaderen sørger for at loade data i baggrunden
+train_loader = DataLoader(
+    dataset,
+    batch_size=BATCH_SIZE,
+    shuffle=True,
+    num_workers=4,  # Bruger 4 CPU kerner til at pre-loade data
+    drop_last=True
+)
 
-rgb_data = []
-training_tensors = []
-targets = []
-rgb_img_tensor = []
-
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-print(f"Training on: {device}")
-
-for i in range(0, number_of_seq):
-    data = dataset.load_data()
-    if len(data) > 0:
-        rgb_data.append(data)
-        print(len(data))
-        print("Shape")
-        print(data[0].shape)
-
-        rgb_img_tensor = torch.from_numpy(data).float() / 255.0
-        rgb_img_tensor = rgb_img_tensor.permute(0, 3, 1, 2)  # First to (seq_len, C, H, W)
-        rgb_img_tensor = torch.nn.functional.interpolate(
-            rgb_img_tensor,
-            size=TARGET_RES,
-            mode='bilinear',
-            align_corners=False
-        )
-        targets.append(rgb_img_tensor[-1].to(device))
-        rgb_img_tensor = rgb_img_tensor.reshape(-1, 256, 256)  # (seq_len * C, 256, 256)
-
-        print(rgb_img_tensor.shape)
-        training_tensors.append(rgb_img_tensor.to(device))
-
-
-print(len(rgb_data))
-
+# --- MODEL SETUP ---
+IN_CHANNELS = 5 * 3  # seq_len * RGB
 model = VideoInpainter(in_channels=IN_CHANNELS, base_channels=128, num_layers=5).to(device)
-
-print("input")
-print(training_tensors[0].shape)
-
 optimizer = optim.Adam(model.parameters(), lr=0.001)
-scheduler = CosineAnnealingLR(optimizer, T_max=5000, eta_min=1e-6)
-results = []
+scheduler = CosineAnnealingLR(optimizer, T_max=NUM_ITERATIONS, eta_min=1e-6)
 
 perceptual_criterion = PerceptualLoss().to(device)
 l1_criterion = torch.nn.L1Loss()
 
-for i in range(0, 5000):
-    optimizer.zero_grad()
+print(f"Starting training on {device}...")
 
-    idx = i % len(training_tensors)
+# --- TRAINING LOOP ---
+current_iter = 0
+while current_iter < NUM_ITERATIONS:
+    for batch_data in train_loader:
+        if current_iter >= NUM_ITERATIONS: break
 
-    output_frame, _ = model(training_tensors[idx].unsqueeze(0).unsqueeze(0))
-    output_frame = output_frame.squeeze(0).squeeze(0)
+        optimizer.zero_grad()
 
-    out_vgg = output_frame.unsqueeze(0)
-    target_vgg = targets[i].unsqueeze(0)
+        # Preprocessing af hele batchen (B, Seq, H, W, C) -> (B, Seq, C, H, W)
+        batch_data = batch_data.float() / 255.0
+        batch_data = batch_data.permute(0, 1, 4, 2, 3).to(device)
 
-    l1_loss = l1_criterion(output_frame, targets[i])
-    vgg_loss = perceptual_criterion(out_vgg, target_vgg)
-    # Kombineret loss (prøv med en vægt på 0.1 til VGG i starten)
-    total_loss = l1_loss + (0.1 * vgg_loss)
+        # Resize alle billeder i batchen
+        # Vi folder B og Seq sammen for at køre interpolate hurtigt
+        B, S, C, H, W = batch_data.shape
+        batch_data = torch.nn.functional.interpolate(
+            batch_data.view(-1, C, H, W), size=TARGET_RES, mode='bilinear'
+        ).view(B, S, C, *TARGET_RES)
 
+        # Split i input (de første frames) og target (den sidste frame)
+        inputs = batch_data[:, :-1].reshape(B, -1, 256, 256)  # (B, (S-1)*C, 256, 256)
+        target = batch_data[:, -1]  # (B, C, 256, 256)
 
-    total_loss.backward()
-    optimizer.step()
-    scheduler.step()
+        # Model forward
+        # Tilføj en ekstra dimension hvis din model forventer (B, 1, C, H, W)
+        output, _ = model(inputs.unsqueeze(1))
+        output = output.squeeze(1)  # Fjern seq dim igen
 
-    print(f"Iteration {i} | Total: {total_loss.item():.4f} | L1: {l1_loss.item():.4f} | VGG: {vgg_loss.item():.4f}")
+        # Loss beregning
+        l1_loss = l1_criterion(output, target)
+        vgg_loss = perceptual_criterion(output, target)
+        total_loss = l1_loss + (0.1 * vgg_loss)
 
-    if i % 50 == 0:
-        print(f"Iteration {i} | Loss: {total_loss.item():.6f}")
-        results.append((targets[i], output_frame.detach()))
+        total_loss.backward()
+        optimizer.step()
+        scheduler.step()
 
+        if current_iter % 10 == 0:
+            print(f"Iter {current_iter} | Total: {total_loss.item():.4f} | L1: {l1_loss.item():.4f}")
 
-num_results = len(results)
+        # Gem et eksempel indimellem
+        if current_iter % 500 == 0:
+            out_img = (output[0].detach().cpu().permute(1, 2, 0).numpy() * 255).astype(np.uint8)
+            cv2.imwrite(f"output_iter_{current_iter}.png", cv2.cvtColor(out_img, cv2.COLOR_RGB2BGR))
 
-for idx, (target_img, output_img) in enumerate(results):
-    for i, image in enumerate([target_img, output_img]):
-        img_np = image.cpu().permute(1, 2, 0).numpy()
-        img_np = (img_np * 255).astype(np.uint8)
-        img_np = cv2.cvtColor(img_np, cv2.COLOR_RGB2BGR)
+        current_iter += 1
 
-        #cv2.imshow('image', img_np)
-        #cv2.waitKey(0)
-
-    if idx == num_results - 1:
-        target_np = target_img.cpu().permute(1, 2, 0).numpy()
-        target_np = (target_np * 255).astype(np.uint8)
-        target_np = cv2.cvtColor(target_np, cv2.COLOR_RGB2BGR)
-
-        output_np = output_img.cpu().permute(1, 2, 0).numpy()
-        output_np = (output_np * 255).astype(np.uint8)
-        output_np = cv2.cvtColor(output_np, cv2.COLOR_RGB2BGR)
-
-        cv2.imwrite("target.png", target_np)
-        cv2.imwrite("final_output.png", output_np)
-
-        print("Done! Saved both 'target.png' og 'final_output.png'")
-
-#for i in range(0, len(rgb_data)):
-#    for h in range(0, len(rgb_data[i])):
-#        cv2.imshow('image', rgb_data[i][h])
-#        cv2.waitKey(0)
+print("Training Done!")
